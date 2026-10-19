@@ -129,7 +129,9 @@ bool MchoseMouseDevice::ParseFeatureResponse(const BYTE* resp, int len, MchoseBa
     bool inverted = (marker == (BYTE)(CMD_DEVICE_INFO ^ 0xFF));
     int percent = inverted ? (resp[11] ^ 0xFF) : resp[11];
     int charge  = inverted ? (resp[12] ^ 0xFF) : resp[12];
-    if (percent < 0 || percent > 100)
+    // ≤1 一律视为无效读数（设备休眠/链路未就绪时电量字段为 0，
+    // 真实电量到不了 1；避免把 0 当有效值显示，保持最后读数）
+    if (percent <= 1 || percent > 100)
         return false;
     out.valid = true;
     out.percent = percent;
