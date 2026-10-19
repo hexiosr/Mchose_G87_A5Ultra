@@ -31,7 +31,7 @@
 
 ## 编译
 
-需要 Visual Studio（含"使用 C++ 的桌面开发"工作负载）与 Windows SDK。
+需要 Visual Studio（含"使用 C++ 的桌面开发"）与 Windows SDK。
 
 ```bat
 build.bat
