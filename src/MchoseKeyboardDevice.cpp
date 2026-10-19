@@ -194,10 +194,8 @@ bool MchoseKeyboardDevice::SendBatteryQuery()
 
 bool MchoseKeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
 {
-    m_lastIoError = 0;
     if (!m_hDevice || !buf || m_input_length == 0)
     {
-        m_lastIoError = ERROR_INVALID_HANDLE;
         return false;
     }
 
@@ -208,35 +206,21 @@ bool MchoseKeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
     DWORD bytes_read = 0;
     if (!ReadFile(m_hDevice, buf, m_input_length, &bytes_read, &ov))
     {
-        DWORD err = GetLastError();
-        if (err != ERROR_IO_PENDING)
-        {
-            m_lastIoError = err;
+        if (GetLastError() != ERROR_IO_PENDING)
             return false;
-        }
         DWORD wait = WaitForSingleObject(m_readEvent, timeout_ms);
         if (wait == WAIT_TIMEOUT)
         {
             CancelIo(m_hDevice);
-            m_lastIoError = ERROR_TIMEOUT;
             return false;
         }
         if (wait != WAIT_OBJECT_0)
-        {
-            m_lastIoError = ERROR_IO_INCOMPLETE;
             return false;
-        }
         if (!GetOverlappedResult(m_hDevice, &ov, &bytes_read, FALSE))
-        {
-            m_lastIoError = GetLastError();
             return false;
-        }
     }
     if (bytes_read == 0)
-    {
-        m_lastIoError = ERROR_HANDLE_EOF;
         return false;
-    }
     return true;
 }
 

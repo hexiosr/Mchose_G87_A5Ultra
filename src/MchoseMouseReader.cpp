@@ -1,20 +1,5 @@
 #include "MchoseMouseReader.h"
 #include <windows.h>
-#include <algorithm>
-#include <cstdio>
-
-#ifdef READER_DEBUG
-#define DBG(...) printf(__VA_ARGS__)
-#else
-#define DBG(...) ((void)0)
-#endif
-
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
 
 MchoseMouseReader::MchoseMouseReader()
 {

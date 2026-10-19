@@ -1,21 +1,5 @@
 #include "MchoseKeyboardReader.h"
 #include <windows.h>
-#include <algorithm>
-#include <cstdio>
-
-#ifdef READER_DEBUG
-#define DBG(...) printf(__VA_ARGS__)
-#else
-#define DBG(...) ((void)0)
-#endif
-
-// windows.h 会定义 min/max 宏，与 std::min/std::max 冲突
-#ifdef min
-#undef min
-#endif
-#ifdef max
-#undef max
-#endif
 
 MchoseKeyboardReader::MchoseKeyboardReader()
 {
@@ -134,7 +118,6 @@ void MchoseKeyboardReader::WorkerLoop()
                     ok = device.Open(L"");
                 if (!ok)
                 {
-                    DBG("[kbd] open FAIL\n");
                     if (ever_opened)
                     {
                         std::lock_guard<std::mutex> lock(m_mutex);
@@ -152,8 +135,6 @@ void MchoseKeyboardReader::WorkerLoop()
                     m_snapshot.product = device.ProductName();
                     m_snapshot.device_path = device.DevicePath();
                 }
-                DBG("[kbd] open OK in=%u out=%u\n",
-                    (unsigned)device.InputReportLength(), (unsigned)device.OutputReportLength());
             }
 
             // ---- 临时开会话 + 查询（不开会话 dongle 对查询静音）----

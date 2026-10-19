@@ -47,9 +47,6 @@ public:
     // 读取一条输入报告（超时返回 false）
     bool ReadInput(BYTE* buf, DWORD timeout_ms);
 
-    // 最近一次 ReadInput/WriteReport 失败的 GetLastError
-    DWORD LastIoError() const { return m_lastIoError; }
-
     // 解析一条 0x4A 查询响应帧
     static MchoseBatteryReading ParseQueryResponse(const BYTE* frame, int len);
 
@@ -69,7 +66,6 @@ private:
 private:
     HANDLE     m_hDevice = nullptr;
     HANDLE     m_readEvent = nullptr;
-    DWORD      m_lastIoError = 0;
     std::wstring m_device_path;
     std::wstring m_product_name;
     USHORT     m_input_length = 0;
