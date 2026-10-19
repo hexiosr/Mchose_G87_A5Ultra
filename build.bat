@@ -82,7 +82,7 @@ cl /nologo /c /EHsc /utf-8 /DUNICODE /D_UNICODE /O2 /MD /W3 /I"%ROOT%src" ^
     "%ROOT%src\dllmain.cpp"
 if errorlevel 1 exit /b 1
 
-link /nologo /DLL /OUT:MchoseBatteryCombined.dll /SUBSYSTEM:WINDOWS ^
+link /nologo /DLL /OUT:MchoseBattery.dll /SUBSYSTEM:WINDOWS ^
     MchoseKeyboardDevice.obj MchoseKeyboardReader.obj MchoseKeyboardItem.obj ^
     MchoseMouseDevice.obj MchoseMouseReader.obj MchoseMouseItem.obj ^
     MchosePlugin.obj dllmain.obj ^
@@ -91,7 +91,7 @@ if errorlevel 1 exit /b 1
 
 echo.
 echo == [2/2] Check exports ==
-dumpbin /exports MchoseBatteryCombined.dll | findstr /C:"TMPluginGetInstance"
+dumpbin /exports MchoseBattery.dll | findstr /C:"TMPluginGetInstance"
 if errorlevel 1 (
     echo [ERROR] Export TMPluginGetInstance not found
     exit /b 1
@@ -99,6 +99,6 @@ if errorlevel 1 (
 
 echo.
 echo [OK] Build finished:
-echo      %ROOT%out\MchoseBatteryCombined.dll
+echo      %ROOT%out\MchoseBattery.dll
 echo      (copy to TrafficMonitor's plugins folder; delete the old keyboard/mouse DLLs)
 endlocal

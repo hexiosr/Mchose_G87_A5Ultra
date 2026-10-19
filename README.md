@@ -37,7 +37,7 @@
 build.bat
 ```
 
-输出：`out\MchoseBatteryCombined.dll`
+输出：`out\MchoseBattery.dll`
 
 ## 目录结构
 
