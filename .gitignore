@@ -1,0 +1,7 @@
+# build output
+out/
+*.obj
+*.lib
+*.exp
+*.pdb
+build_out.txt
