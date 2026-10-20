@@ -135,7 +135,8 @@ bool MchoseMouseDevice::ParseFeatureResponse(const BYTE* resp, int len, MchoseBa
         return false;
     out.valid = true;
     out.percent = percent;
-    out.charging = (charge & 0x10) != 0; // 参照键盘：0x10 位 = 充电中
+    // 充电标志：实测插电 0x01 / 拔线 0x00 → bit0 = 充电中
+    out.charging = (charge & 0x01) != 0;
     return true;
 }
 

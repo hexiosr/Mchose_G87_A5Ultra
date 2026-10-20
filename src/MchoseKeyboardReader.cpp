@@ -62,7 +62,7 @@ void MchoseKeyboardReader::WorkerLoop()
     constexpr DWORD kReconnectDelay = 3000;          // 打开设备失败的重试间隔
     constexpr ULONGLONG kQueryCooldownMs = 2000;     // 查询防抖
     constexpr int kMaxQueryFailures = 3;             // 连续查询失败达阈值 → 判离线
-    constexpr ULONGLONG kActivityRefreshMs = 300000; // 使用中每 5 分钟刷新一次
+    constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
     constexpr ULONGLONG kActiveWindowMs = 30000;     // 30 秒内有按键才视为"使用中"
     constexpr ULONGLONG kIdleWakeMs = 60000;         // 闲置满 60 秒后的首次按键 = 键盘唤醒
 

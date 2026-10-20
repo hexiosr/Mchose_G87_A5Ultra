@@ -1,51 +1,80 @@
-# Mchose_G87_A5Ultra
+# Mchose\_G87\_A5Ultra
 
-迈从（MCHOSE）G87 键盘 + A5 Ultra 鼠标 2.4G 电量显示 —— TrafficMonitor 任务栏插件。
+迈从（MCHOSE）G87 键盘和 A5 Ultra 鼠标的 2.4G 电量显示插件，用于 TrafficMonitor。
 
-- **键盘:** —— G87 2.4G 键盘电量（VID_41E4 / PID_2001）
-- **鼠标:** —— A5 Ultra 2.4G 鼠标电量（VID_3837 / PID_100C）
 
-## 功能特性
 
-- 任务栏实时显示键盘 / 鼠标 2.4G 电量百分比，**充电中显示 `%⚡`**（悬停提示详细标注"充电中"）
-- **不阻止休眠**：仅在设备唤醒（闲置一段时间后的首次按键/移动）或初次启动时查询一次，无周期轮询
-- **句柄即查即关**：查询瞬间才打开 HID 句柄，查询后立即关闭，不与官方 M HUB 驱动/网页驱动争用
-- 设备休眠时保持最后读数，唤醒后自动刷新
-- 鼠标/接收器断开自动重连
+* `键盘:` G87 2.4G 键盘电量（VID\_41E4 / PID\_2001）
 
-## 电量读取原理
+* `鼠标:` A5 Ultra 2.4G 鼠标电量（VID\_3837 / PID\_100C）
 
-| 设备 | 通道 | 协议 |
-|---|---|---|
-| G87 键盘 | VID_41E4 / PID_2001，UsagePage 0xFF02，20 字节帧，Report ID 0x13 | 开会话 `13 05 01` → 查询 `13 4A 01` → 响应 `[5]=电量 [6]&0x10=充电`（校验=前19字节求和&0xFF） |
-| A5 Ultra 鼠标 | VID_3837 / PID_100C，UsagePage 0xFF01，feature report 65 字节 | `SetFeature(0x11, 0x06^0xFF, 0xFF×19)` 请求设备信息 → `GetFeature(0x11, 65B)` 读响应：电量=resp[11]（反码帧则 ^0xFF） |
+## 功能
 
-鼠标协议逆向自官方 M HUB 网页驱动（www.mchose.com.cn assets 中的 theme / purify JS）。
+
+
+* 任务栏显示键盘 / 鼠标电量百分比
+
+* 充电时显示 `99%⚡`，悬停提示会标注 "充电中"
+
+* 只在需要时查询，不做周期轮询：
+
+
+  * 插件启动后查一次
+
+  * 设备闲置 120 秒后，首次按键 / 移动时查一次（视为唤醒）
+
+  * 使用中（活动后 30 秒内）每 5 秒刷新一次，停止操作 30 秒后不再查询
+
+* 查询时临时打开 HID 句柄，读完立即关闭，不与官方驱动 / 网页驱动争用
+
+* 设备休眠时保持最后读数，唤醒后自动刷新
+
+* 接收器断开后自动重连，不误判离线
+
+## 电量读取
+
+
+
+| 设备          | 通道                                                           | 协议                                                                                                                           |
+| ----------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| G87 键盘      | VID\_41E4 / PID\_2001，UsagePage 0xFF02，20 字节帧，Report ID 0x13 | 开会话 `13 05 01` → 查询 `13 4A 01` → 响应 `[5]=电量 [6]&0x10=充电`；自发推送 `[1]=0x0A [5]=0x05` 为电量推送（`[6]=电量 [7]=充电`）。校验为前 19 字节求和 & 0xFF |
+| A5 Ultra 鼠标 | VID\_3837 / PID\_100C，UsagePage 0xFF01，feature report 65 字节  | `SetFeature(0x11, 0x06^0xFF, 0xFF×19)` 请求设备信息 → `GetFeature(0x11, 65B)` 读响应：电量 = resp \[11]（反码帧则 ^0xFF），充电 = resp \[12] bit0 |
+
+鼠标协议来自官方 M HUB 网页驱动（[www.mchose.com.cn](https://www.mchose.com.cn) assets 中的 theme /purify JS）。A5 Ultra 三态 PID：有线 11111、蓝牙 18274、2.4G 4108。读取电量必须先 SetFeature 写 "请求设备信息" 命令（命令字节逐位取反），再 GetFeature 读响应。
 
 ## 安装
 
-1. 下载 Release 中的 `MchoseBattery.dll`
+
+
+1. 从 Release 下载 `MchoseBattery.dll`
+
 2. 复制到 TrafficMonitor 的 `plugins` 目录
-3. 重启 TrafficMonitor，在插件管理中勾选"键盘电量显示和鼠标电量显示"
+
+3. 重启 TrafficMonitor，在插件管理中勾选 "迈从设备电量显示"
+
 4. 任务栏出现 `键盘:` 与 `鼠标:` 两个显示项
 
 ## 编译
 
-需要 Visual Studio（含"使用 C++ 的桌面开发"）与 Windows SDK。
+需要 Visual Studio（"使用 C++ 的桌面开发" 工作负载）和 Windows SDK。
 
-```bat
+
+
+```
 build.bat
 ```
 
-输出：`out\MchoseBattery.dll`
+输出 `out\MchoseBattery.dll`。
 
 ## 目录结构
+
+
 
 ```
 src/
   PluginInterface.h          TrafficMonitor 插件接口
   HidApi.h                   HID API 声明（免 SDK hidsdi.h/hidpi.h）
-  BatteryCommon.h            键盘/鼠标共用数据结构
+  BatteryCommon.h            键盘 / 鼠标共用数据结构
   MchoseKeyboardDevice.*     G87 键盘 0x13 协议层
   MchoseKeyboardReader.*     键盘后台线程（按需查询 + 按键检测 + 重连）
   MchoseKeyboardItem.*       键盘显示项（IPluginItem）

@@ -88,7 +88,8 @@ void MchoseMouseReader::WorkerLoop()
 {
     MchoseMouseDevice device;
     constexpr ULONGLONG kQueryCooldownMs = 2000;     // 采集冷却（防抖）
-    constexpr ULONGLONG kActivityRefreshMs = 30000;  // 使用中每 30 秒刷新一次
+    constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
+    constexpr ULONGLONG kActiveWindowMs = 30000;     // 最近 30 秒内有活动才视为"使用中"
     constexpr ULONGLONG kIdleWakeMs = 120000;        // 闲置满 120 秒后的首次活动 = 鼠标唤醒
     constexpr int kMaxOpenFailures = 3;              // 连续打不开设备达阈值 → 判离线
 
@@ -122,10 +123,10 @@ void MchoseMouseReader::WorkerLoop()
         {
             need_collect = true;                 // ② 鼠标唤醒瞬间：采集一次
         }
-        else if (active &&
+        else if (now - last_activity_ms < kActiveWindowMs &&
                  now - last_query_ms >= kActivityRefreshMs)
         {
-            need_collect = true;                 // ③ 使用中每 30 秒刷新一次
+            need_collect = true;                 // ③ 使用中（最近 30 秒内有活动）每 10 秒刷新一次
         }
 
         if (need_collect && now - last_query_ms < kQueryCooldownMs)

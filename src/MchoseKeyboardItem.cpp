@@ -24,8 +24,8 @@ const wchar_t* MchoseKeyboardItem::GetItemValueText() const
 const wchar_t* MchoseKeyboardItem::GetItemValueSampleText() const
 {
     // 给足宽度预算（主程序按此字符串长度计算显示区域宽度），
-    // 避免末尾的 "%" 因空间不足被裁剪
-    return L"100%";
+    // 含充电 ⚡ 标记，避免末尾符号被裁剪
+    return L"100%\u26A1";
 }
 
 bool MchoseKeyboardItem::IsCustomDraw() const
