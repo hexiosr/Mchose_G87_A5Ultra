@@ -52,8 +52,11 @@ void MchosePlugin::BuildValueText(const BatterySnapshot& snap, std::wstring& out
         return;
     }
 
-    wchar_t buf[16];
-    swprintf_s(buf, L"%d%%", snap.percent);
+    wchar_t buf[32];
+    if (snap.charging)
+        swprintf_s(buf, L"%d%%\u26A1", snap.percent); // ⚡ 充电中
+    else
+        swprintf_s(buf, L"%d%%", snap.percent);
     out = buf;
 }
 
@@ -77,6 +80,8 @@ void MchosePlugin::BuildKeyboardTooltip(const BatterySnapshot& snap, std::wstrin
         wchar_t buf[64];
         swprintf_s(buf, L"电量：%d%%", snap.percent);
         out += buf;
+        if (snap.charging)
+            out += L"（充电中）";
         if (snap.last_update_ms != 0)
         {
             ULONGLONG now = GetTickCount64();
@@ -111,6 +116,8 @@ void MchosePlugin::BuildMouseTooltip(const BatterySnapshot& snap, std::wstring& 
         wchar_t buf[64];
         swprintf_s(buf, L"电量：%d%%", snap.percent);
         out += buf;
+        if (snap.charging)
+            out += L"（充电中）";
         if (snap.last_update_ms != 0)
         {
             ULONGLONG now = GetTickCount64();
@@ -138,7 +145,7 @@ const wchar_t* MchosePlugin::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"MIT License";
     case TMI_VERSION:
-        return L"1.0.2";
+        return L"1.0.3";
     default:
         break;
     }
