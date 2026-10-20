@@ -2,7 +2,7 @@
 rem ============================================================
 rem combined-battery-plugin - build script
 rem MCHOSE G87 keyboard + A5 Ultra mouse battery display plugin for TrafficMonitor
-rem (one DLL, two display items: keyboardBattery + mouseBattery)
+rem (one DLL, one display item: peripheralBattery - keyboard/mouse combined)
 rem
 rem Requirements:
 rem   Visual Studio with "Desktop development with C++"
@@ -74,17 +74,16 @@ echo == [1/2] Build plugin DLL ==
 cl /nologo /c /EHsc /utf-8 /DUNICODE /D_UNICODE /O2 /MD /W3 /I"%ROOT%src" ^
     "%ROOT%src\MchoseKeyboardDevice.cpp" ^
     "%ROOT%src\MchoseKeyboardReader.cpp" ^
-    "%ROOT%src\MchoseKeyboardItem.cpp" ^
     "%ROOT%src\MchoseMouseDevice.cpp" ^
     "%ROOT%src\MchoseMouseReader.cpp" ^
-    "%ROOT%src\MchoseMouseItem.cpp" ^
+    "%ROOT%src\MchosePeripheralItem.cpp" ^
     "%ROOT%src\MchosePlugin.cpp" ^
     "%ROOT%src\dllmain.cpp"
 if errorlevel 1 exit /b 1
 
 link /nologo /DLL /OUT:MchoseBattery.dll /SUBSYSTEM:WINDOWS ^
-    MchoseKeyboardDevice.obj MchoseKeyboardReader.obj MchoseKeyboardItem.obj ^
-    MchoseMouseDevice.obj MchoseMouseReader.obj MchoseMouseItem.obj ^
+    MchoseKeyboardDevice.obj MchoseKeyboardReader.obj ^
+    MchoseMouseDevice.obj MchoseMouseReader.obj MchosePeripheralItem.obj ^
     MchosePlugin.obj dllmain.obj ^
     kernel32.lib user32.lib gdi32.lib setupapi.lib hid.lib ucrt.lib uuid.lib
 if errorlevel 1 exit /b 1
@@ -100,5 +99,5 @@ if errorlevel 1 (
 echo.
 echo [OK] Build finished:
 echo      %ROOT%out\MchoseBattery.dll
-echo      (copy to TrafficMonitor's plugins folder; delete the old keyboard/mouse DLLs)
+echo      (copy to TrafficMonitor's plugins folder, then enable the "外设电量显示" item)
 endlocal

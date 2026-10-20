@@ -50,9 +50,9 @@
 
 2. 复制到 TrafficMonitor 的 `plugins` 目录
 
-3. 重启 TrafficMonitor，在插件管理中勾选 "迈从设备电量显示"
+3. 重启 TrafficMonitor，在插件管理中勾选 "外设电量显示"
 
-4. 任务栏出现 `键盘:` 与 `鼠标:` 两个显示项
+4. 任务栏显示 `键盘: 99% | 鼠标: 99%`（离线 / 未检测到的设备显示 `--%`）
 
 ## 编译
 
@@ -77,11 +77,10 @@ src/
   BatteryCommon.h            键盘 / 鼠标共用数据结构
   MchoseKeyboardDevice.*     G87 键盘 0x13 协议层
   MchoseKeyboardReader.*     键盘后台线程（按需查询 + 按键检测 + 重连）
-  MchoseKeyboardItem.*       键盘显示项（IPluginItem）
   MchoseMouseDevice.*        A5 Ultra SetFeature+GetFeature 协议层
   MchoseMouseReader.*        鼠标后台线程（按需查询 + 活动检测 + 重连）
-  MchoseMouseItem.*          鼠标显示项（IPluginItem）
-  MchosePlugin.*             插件主类（GetItem(0)=键盘 / GetItem(1)=鼠标）
+  MchosePeripheralItem.*     外设显示项（IPluginItem，组合键盘 / 鼠标）
+  MchosePlugin.*             插件主类（GetItem(0)=外设电量显示）
   dllmain.cpp                DLL 入口
 build.bat                    一键编译脚本
 ```

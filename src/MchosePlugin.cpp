@@ -13,8 +13,7 @@ IPluginItem* MchosePlugin::GetItem(int index)
 {
     switch (index)
     {
-    case 0: return &m_key_item;    // 键盘电量
-    case 1: return &m_mouse_item;  // 鼠标电量
+    case 0: return &m_item;    // 外设电量显示（组合键盘 / 鼠标）
     default: return nullptr;
     }
 }
@@ -34,8 +33,14 @@ void MchosePlugin::DataRequired()
 
 void MchosePlugin::RefreshDisplay()
 {
-    BuildValueText(m_key_reader.GetSnapshot(), m_key_value_text);
-    BuildValueText(m_mouse_reader.GetSnapshot(), m_mouse_value_text);
+    std::wstring kb_txt, ms_txt;
+    BuildValueText(m_key_reader.GetSnapshot(), kb_txt);
+    BuildValueText(m_mouse_reader.GetSnapshot(), ms_txt);
+
+    // 键盘 + 鼠标始终组合显示（离线 / 无读数时该设备显示 --%）
+    // 不显示"外设:"标签，任务栏只显示设备电量
+    m_label_text = L"";
+    m_value_text = L"键盘: " + kb_txt + L" | 鼠标: " + ms_txt;
 
     std::wstring tip;
     BuildKeyboardTooltip(m_key_reader.GetSnapshot(), tip);
@@ -145,7 +150,7 @@ const wchar_t* MchosePlugin::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"MIT License";
     case TMI_VERSION:
-        return L"1.0.6";
+        return L"1.0.7";
     default:
         break;
     }
