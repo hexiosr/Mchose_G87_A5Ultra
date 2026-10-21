@@ -61,12 +61,10 @@ void MchoseKeyboardReader::WorkerLoop()
     MchoseKeyboardDevice device;
     constexpr DWORD kReconnectDelay = 3000;          // 打开设备失败的重试间隔
     constexpr ULONGLONG kQueryCooldownMs = 2000;     // 查询防抖
-    constexpr int kMaxQueryFailures = 3;             // 连续查询失败达阈值 → 判离线
     constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
     constexpr ULONGLONG kActiveWindowMs = 30000;     // 30 秒内有按键才视为"使用中"
     constexpr ULONGLONG kIdleWakeMs = 60000;         // 闲置满 60 秒后的首次按键 = 键盘唤醒
 
-    int query_failures = 0;
     ULONGLONG last_query_ms = 0;
     ULONGLONG last_key_activity_ms = 0; // 最近一次检测到按键的时刻
     bool ever_opened = false;
@@ -118,17 +116,13 @@ void MchoseKeyboardReader::WorkerLoop()
                     ok = device.Open(L"");
                 if (!ok)
                 {
-                    if (ever_opened)
-                    {
-                        std::lock_guard<std::mutex> lock(m_mutex);
-                        m_snapshot.online = false;
-                    }
+                    // 打开失败（接收器未连接）：不做离线判定，保持最后读数，
+                    // 延迟后重试
                     if (!m_stop)
                         Sleep(kReconnectDelay);
                     continue;
                 }
                 ever_opened = true;
-                query_failures = 0;
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
                     m_snapshot.has_device = true;
@@ -143,7 +137,6 @@ void MchoseKeyboardReader::WorkerLoop()
                 Sleep(100);
             device.SendBatteryQuery();
 
-            bool got = false;
             ULONGLONG deadline = GetTickCount64() + 600;
             while (!m_stop && GetTickCount64() < deadline)
             {
@@ -157,7 +150,6 @@ void MchoseKeyboardReader::WorkerLoop()
                         std::lock_guard<std::mutex> lock(m_mutex);
                         UpdateSnapshotLocked(r, true, GetTickCount64());
                     }
-                    got = true;
                     break;
                 }
                 if (MchoseKeyboardDevice::ParsePushFrame(frame, sizeof(frame), r))
@@ -166,27 +158,14 @@ void MchoseKeyboardReader::WorkerLoop()
                         std::lock_guard<std::mutex> lock(m_mutex);
                         UpdateSnapshotLocked(r, true, GetTickCount64());
                     }
-                    got = true;
                     break;
                 }
             }
 
             last_query_ms = GetTickCount64();
-            if (got)
-            {
-                query_failures = 0;
-            }
-            else
-            {
-                // 无响应：键盘可能休眠（dongle 静音）——不立即离线；
-                // 连续多次失败才判离线（接收器拔出等）
-                ++query_failures;
-                if (query_failures >= kMaxQueryFailures)
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    m_snapshot.online = false;
-                }
-            }
+            // 查询成功与否都不做离线判定：
+            // 查询成功 → 更新读数；
+            // 无响应（键盘休眠 dongle 静音 / 接收器拔出）→ 保持最后读数
 
             // ---- 释放会话：关闭句柄，下次查询再重开 ----
             // dongle 的配置会话一次只服务一个客户端；句柄关闭后会话释放，

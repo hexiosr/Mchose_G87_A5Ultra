@@ -91,9 +91,7 @@ void MchoseMouseReader::WorkerLoop()
     constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
     constexpr ULONGLONG kActiveWindowMs = 30000;     // 最近 30 秒内有活动才视为"使用中"
     constexpr ULONGLONG kIdleWakeMs = 120000;        // 闲置满 120 秒后的首次活动 = 鼠标唤醒
-    constexpr int kMaxOpenFailures = 3;              // 连续打不开设备达阈值 → 判离线
 
-    int open_failures = 0;
     ULONGLONG last_query_ms = 0;
     ULONGLONG last_activity_ms = 0; // 最近一次检测到鼠标活动的时刻
     POINT last_pos{};
@@ -141,28 +139,17 @@ void MchoseMouseReader::WorkerLoop()
 
             if (got)
             {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (!m_snapshot.has_device)
                 {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    if (!m_snapshot.has_device)
-                    {
-                        m_snapshot.has_device = true;
-                        m_snapshot.product = product;
-                        m_snapshot.device_path = devpath;
-                    }
-                    UpdateSnapshotLocked(r, true, GetTickCount64());
+                    m_snapshot.has_device = true;
+                    m_snapshot.product = product;
+                    m_snapshot.device_path = devpath;
                 }
-                open_failures = 0;
+                UpdateSnapshotLocked(r, true, GetTickCount64());
             }
-            else
-            {
-                // 打不开 / 查询无有效读数。连续多次才判离线。
-                ++open_failures;
-                if (open_failures >= kMaxOpenFailures)
-                {
-                    std::lock_guard<std::mutex> lock(m_mutex);
-                    m_snapshot.online = false;
-                }
-            }
+            // 查询失败（休眠/唤醒中链路未就绪、接收器被拔出）：
+            // 不做离线判定，保持最后读数继续显示
         }
 
         // 空闲 tick（~80ms）：不持有句柄、不发送任何数据，

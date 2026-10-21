@@ -150,7 +150,7 @@ const wchar_t* MchosePlugin::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"MIT License";
     case TMI_VERSION:
-        return L"1.0.7";
+        return L"1.1.0";
     default:
         break;
     }
