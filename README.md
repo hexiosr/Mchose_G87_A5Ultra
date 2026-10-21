@@ -1,6 +1,6 @@
 # Mchose\_G87\_A5Ultra
 
-适用于用于 [TrafficMonitor]([https://www.mchose.com.cn](https://github.com/zhongyang219/TrafficMonitor))的迈从（MCHOSE）G87 键盘和 A5 Ultra 鼠标的 2.4G 电量显示插件。
+适用于用于 [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor)的迈从（MCHOSE）G87 键盘和 A5 Ultra 鼠标的 2.4G 电量显示插件。
 
 
 
