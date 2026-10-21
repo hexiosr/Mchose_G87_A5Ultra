@@ -1,6 +1,6 @@
 # Mchose\_G87\_A5Ultra
 
-迈从（MCHOSE）G87 键盘和 A5 Ultra 鼠标的 2.4G 电量显示插件，用于 TrafficMonitor。
+适用于用于 [TrafficMonitor]([https://www.mchose.com.cn](https://github.com/zhongyang219/TrafficMonitor))的迈从（MCHOSE）G87 键盘和 A5 Ultra 鼠标的 2.4G 电量显示插件。
 
 
 
@@ -19,7 +19,6 @@
 * 只在需要时查询，不做周期轮询：
 
 
-  * 插件启动后查一次
 
   * 设备闲置 120 秒后，首次按键 / 移动时查一次（视为唤醒）
 
@@ -56,7 +55,7 @@
 
 ## 编译
 
-需要 Visual Studio（"使用 C++ 的桌面开发" 工作负载）和 Windows SDK。
+需要 Visual Studio（"使用 C++ 的桌面开发" ）和 Windows SDK。
 
 
 
