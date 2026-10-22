@@ -1,37 +1,37 @@
-#include "MchoseKeyboardReader.h"
+#include "KeyboardReader.h"
 #include <windows.h>
 
-MchoseKeyboardReader::MchoseKeyboardReader()
+KeyboardReader::KeyboardReader()
 {
     m_snapshot.percent = -1;
 }
 
-MchoseKeyboardReader::~MchoseKeyboardReader()
+KeyboardReader::~KeyboardReader()
 {
     Stop();
 }
 
-void MchoseKeyboardReader::Start()
+void KeyboardReader::Start()
 {
     if (m_thread.joinable())
         return;
     m_stop = false;
-    m_thread = std::thread(&MchoseKeyboardReader::WorkerLoop, this);
+    m_thread = std::thread(&KeyboardReader::WorkerLoop, this);
     m_thread.detach(); // 插件生命周期内常驻；进程退出时随进程终止
 }
 
-void MchoseKeyboardReader::Stop()
+void KeyboardReader::Stop()
 {
     m_stop = true;
 }
 
-BatterySnapshot MchoseKeyboardReader::GetSnapshot() const
+BatterySnapshot KeyboardReader::GetSnapshot() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_snapshot;
 }
 
-void MchoseKeyboardReader::UpdateSnapshotLocked(const MchoseBatteryReading& reading, bool online, ULONGLONG now_ms)
+void KeyboardReader::UpdateSnapshotLocked(const BatteryReading& reading, bool online, ULONGLONG now_ms)
 {
     m_snapshot.online = online;
     if (reading.valid)
@@ -56,9 +56,9 @@ static bool AnyKeyPressed()
     return false;
 }
 
-void MchoseKeyboardReader::WorkerLoop()
+void KeyboardReader::WorkerLoop()
 {
-    MchoseKeyboardDevice device;
+    KeyboardDevice device;
     constexpr DWORD kReconnectDelay = 3000;          // 打开设备失败的重试间隔
     constexpr ULONGLONG kQueryCooldownMs = 2000;     // 查询防抖
     constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
@@ -98,7 +98,7 @@ void MchoseKeyboardReader::WorkerLoop()
         else if (now - last_key_activity_ms < kActiveWindowMs &&
                  now - last_query_ms >= kActivityRefreshMs)
         {
-            need_query = true;                    // ③ 使用中每 5 分钟刷新一次
+            need_query = true;                    // ③ 使用中每 5 秒刷新一次
         }
 
         // 防抖：距上次查询不足 2 秒则跳过
@@ -143,7 +143,7 @@ void MchoseKeyboardReader::WorkerLoop()
                 BYTE frame[64]{};
                 if (!device.ReadInput(frame, 100))
                     continue;
-                MchoseBatteryReading r = MchoseKeyboardDevice::ParseQueryResponse(frame, sizeof(frame));
+                BatteryReading r = KeyboardDevice::ParseQueryResponse(frame, sizeof(frame));
                 if (r.valid)
                 {
                     {
@@ -152,7 +152,7 @@ void MchoseKeyboardReader::WorkerLoop()
                     }
                     break;
                 }
-                if (MchoseKeyboardDevice::ParsePushFrame(frame, sizeof(frame), r))
+                if (KeyboardDevice::ParsePushFrame(frame, sizeof(frame), r))
                 {
                     {
                         std::lock_guard<std::mutex> lock(m_mutex);

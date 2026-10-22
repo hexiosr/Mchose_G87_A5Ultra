@@ -1,6 +1,6 @@
 #pragma once
 // ============================================================
-// MchoseMouseDevice.h
+// MouseDevice.h
 // 迈从（MCHOSE）A5 Ultra 2.4G 鼠标电量读取
 // 协议逆向自官方 M HUB 网页驱动（www.mchose.com.cn assets/theme + purify）
 //
@@ -17,11 +17,11 @@
 #include <string>
 #include "BatteryCommon.h"
 
-class MchoseMouseDevice
+class MouseDevice
 {
 public:
-    MchoseMouseDevice();
-    ~MchoseMouseDevice();
+    MouseDevice();
+    ~MouseDevice();
 
     // 在系统中搜索 A5 Ultra 2.4G 电量通道（0xFF01）并打开。
     bool Open(const std::wstring& device_path = L"");
@@ -34,12 +34,12 @@ public:
     const std::wstring& ProductName() const { return m_product_name; }
 
     // 读取设备信息（含电量）：SetFeature(11 06) + GetFeature(0x11)。
-    bool QueryBattery(MchoseBatteryReading& out);
+    bool QueryBattery(BatteryReading& out);
 
 private:
     bool OpenPath(const std::wstring& path);
     bool SetFeatureSafe(const BYTE* buf, int len);
-    static bool ParseFeatureResponse(const BYTE* resp, int len, MchoseBatteryReading& out);
+    static bool ParseFeatureResponse(const BYTE* resp, int len, BatteryReading& out);
 
 private:
     HANDLE     m_hDevice = nullptr;

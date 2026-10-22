@@ -1,8 +1,8 @@
 @echo off
 rem ============================================================
-rem combined-battery-plugin - build script
-rem MCHOSE G87 keyboard + A5 Ultra mouse battery display plugin for TrafficMonitor
-rem (one DLL, one display item: peripheralBattery - keyboard/mouse combined)
+rem PeripheralBattery - build script
+rem MCHOSE G87 keyboard + A5 Ultra mouse + G7 Pro + DualSense battery display plugin for TrafficMonitor
+rem (one DLL, one display item: peripheralBattery - keyboard/mouse/gamepad combined)
 rem
 rem Requirements:
 rem   Visual Studio with "Desktop development with C++"
@@ -71,26 +71,34 @@ cd /d "%ROOT%out"
 
 echo.
 echo == [1/2] Build plugin DLL ==
-cl /nologo /c /EHsc /utf-8 /DUNICODE /D_UNICODE /O2 /MD /W3 /I"%ROOT%src" ^
-    "%ROOT%src\MchoseKeyboardDevice.cpp" ^
-    "%ROOT%src\MchoseKeyboardReader.cpp" ^
-    "%ROOT%src\MchoseMouseDevice.cpp" ^
-    "%ROOT%src\MchoseMouseReader.cpp" ^
-    "%ROOT%src\MchosePeripheralItem.cpp" ^
-    "%ROOT%src\MchosePlugin.cpp" ^
-    "%ROOT%src\dllmain.cpp"
+cl /nologo /c /EHsc /utf-8 /DUNICODE /D_UNICODE /O2 /MD /W3 ^
+    /I"%ROOT%src\common" /I"%ROOT%src\keyboard" /I"%ROOT%src\mouse" ^
+    /I"%ROOT%src\dualsense" /I"%ROOT%src\g7" /I"%ROOT%src\plugin" ^
+    "%ROOT%src\keyboard\KeyboardDevice.cpp" ^
+    "%ROOT%src\keyboard\KeyboardReader.cpp" ^
+    "%ROOT%src\mouse\MouseDevice.cpp" ^
+    "%ROOT%src\mouse\MouseReader.cpp" ^
+    "%ROOT%src\dualsense\DualSenseDevice.cpp" ^
+    "%ROOT%src\dualsense\DualSenseReader.cpp" ^
+    "%ROOT%src\g7\G7Device.cpp" ^
+    "%ROOT%src\g7\G7Reader.cpp" ^
+    "%ROOT%src\plugin\PeripheralItem.cpp" ^
+    "%ROOT%src\plugin\Plugin.cpp" ^
+    "%ROOT%src\plugin\dllmain.cpp"
 if errorlevel 1 exit /b 1
 
-link /nologo /DLL /OUT:MchoseBattery.dll /SUBSYSTEM:WINDOWS ^
-    MchoseKeyboardDevice.obj MchoseKeyboardReader.obj ^
-    MchoseMouseDevice.obj MchoseMouseReader.obj MchosePeripheralItem.obj ^
-    MchosePlugin.obj dllmain.obj ^
+link /nologo /DLL /OUT:PeripheralBattery.dll /SUBSYSTEM:WINDOWS ^
+    KeyboardDevice.obj KeyboardReader.obj ^
+    MouseDevice.obj MouseReader.obj ^
+    DualSenseDevice.obj DualSenseReader.obj ^
+    G7Device.obj G7Reader.obj ^
+    PeripheralItem.obj Plugin.obj dllmain.obj ^
     kernel32.lib user32.lib gdi32.lib setupapi.lib hid.lib ucrt.lib uuid.lib
 if errorlevel 1 exit /b 1
 
 echo.
 echo == [2/2] Check exports ==
-dumpbin /exports MchoseBattery.dll | findstr /C:"TMPluginGetInstance"
+dumpbin /exports PeripheralBattery.dll | findstr /C:"TMPluginGetInstance"
 if errorlevel 1 (
     echo [ERROR] Export TMPluginGetInstance not found
     exit /b 1
@@ -98,6 +106,6 @@ if errorlevel 1 (
 
 echo.
 echo [OK] Build finished:
-echo      %ROOT%out\MchoseBattery.dll
-echo      (copy to TrafficMonitor's plugins folder, then enable the "外设电量显示" item)
+echo      %ROOT%out\PeripheralBattery.dll
+echo      (copy to TrafficMonitor's plugins folder, then enable the "??????????????????" item)
 endlocal

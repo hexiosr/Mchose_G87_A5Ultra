@@ -1,31 +1,30 @@
 #pragma once
 // ============================================================
-// MchoseMouseReader.h
+// MouseReader.h
 // 鼠标后台线程：按需采集（初次/唤醒/30秒刷新）+ 鼠标活动检测 + 断线重连
 // 无周期轮询 -> 不会唤醒休眠中的鼠标/接收器
 // ============================================================
-#include "MchoseMouseDevice.h"
+#include "MouseDevice.h"
 #include "BatteryCommon.h"
 #include <atomic>
 #include <mutex>
 #include <thread>
 #include <string>
 
-class MchoseMouseReader
+class MouseReader
 {
 public:
-    MchoseMouseReader();
-    ~MchoseMouseReader();
+    MouseReader();
+    ~MouseReader();
 
     void Start();
     void Stop();                       // 请求停止（非阻塞）
-    bool IsRunning() const { return m_thread.joinable(); }
 
     BatterySnapshot GetSnapshot() const;
 
 private:
     void WorkerLoop();
-    void UpdateSnapshotLocked(const MchoseBatteryReading& reading, bool online, ULONGLONG now_ms);
+    void UpdateSnapshotLocked(const BatteryReading& reading, bool online, ULONGLONG now_ms);
 
 private:
     std::atomic<bool> m_stop{ false };

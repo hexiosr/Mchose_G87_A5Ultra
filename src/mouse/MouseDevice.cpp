@@ -1,24 +1,24 @@
-#include "MchoseMouseDevice.h"
+#include "MouseDevice.h"
 #include "HidApi.h"
 #include <setupapi.h>
 #include <vector>
 #include <cstring>
 
 // ---- A5 Ultra 2.4G 电量通道特征 ----
-static constexpr WORD   MCHOSE_VID      = 0x3837; // 14391
+static constexpr WORD   VENDOR_VID      = 0x3837; // 14391
 static constexpr WORD   A5U_PID         = 0x100C; // 4108
 static constexpr USHORT CHANNEL_USAGE_PAGE = 0xFF01;
 static constexpr BYTE   FEATURE_RID     = 0x11;   // feature report ID
 static constexpr BYTE   CMD_DEVICE_INFO = 0x06;   // "11 06" 设备信息（含电量）
 
-MchoseMouseDevice::MchoseMouseDevice() = default;
+MouseDevice::MouseDevice() = default;
 
-MchoseMouseDevice::~MchoseMouseDevice()
+MouseDevice::~MouseDevice()
 {
     Close();
 }
 
-bool MchoseMouseDevice::Open(const std::wstring& device_path)
+bool MouseDevice::Open(const std::wstring& device_path)
 {
     Close();
     if (!device_path.empty())
@@ -55,7 +55,7 @@ bool MchoseMouseDevice::Open(const std::wstring& device_path)
     return found;
 }
 
-bool MchoseMouseDevice::OpenPath(const std::wstring& path)
+bool MouseDevice::OpenPath(const std::wstring& path)
 {
     HANDLE h = CreateFileW(path.c_str(),
                            GENERIC_READ | GENERIC_WRITE,
@@ -66,7 +66,7 @@ bool MchoseMouseDevice::OpenPath(const std::wstring& path)
 
     HIDD_ATTRIBUTES attr{};
     attr.Size = sizeof(attr);
-    if (!HidD_GetAttributes(h, &attr) || attr.VendorID != MCHOSE_VID || attr.ProductID != A5U_PID)
+    if (!HidD_GetAttributes(h, &attr) || attr.VendorID != VENDOR_VID || attr.ProductID != A5U_PID)
     {
         CloseHandle(h);
         return false;
@@ -99,7 +99,7 @@ bool MchoseMouseDevice::OpenPath(const std::wstring& path)
     return true;
 }
 
-void MchoseMouseDevice::Close()
+void MouseDevice::Close()
 {
     if (m_hDevice)
     {
@@ -111,14 +111,14 @@ void MchoseMouseDevice::Close()
 }
 
 // SetFeature 在设备休眠时可能挂起，实测本设备正常立即返回（debug-probe5 OK err=0）
-bool MchoseMouseDevice::SetFeatureSafe(const BYTE* buf, int len)
+bool MouseDevice::SetFeatureSafe(const BYTE* buf, int len)
 {
     if (!m_hDevice || !buf || len <= 0 || len > 65)
         return false;
     return HidD_SetFeature(m_hDevice, const_cast<BYTE*>(buf), (ULONG)len) != FALSE;
 }
 
-bool MchoseMouseDevice::ParseFeatureResponse(const BYTE* resp, int len, MchoseBatteryReading& out)
+bool MouseDevice::ParseFeatureResponse(const BYTE* resp, int len, BatteryReading& out)
 {
     // resp[0] = Report ID(0x11)，resp[1] = 命令原码(0x06)或反码(0xF9)
     if (!resp || len < 13 || resp[0] != FEATURE_RID)
@@ -140,7 +140,7 @@ bool MchoseMouseDevice::ParseFeatureResponse(const BYTE* resp, int len, MchoseBa
     return true;
 }
 
-bool MchoseMouseDevice::QueryBattery(MchoseBatteryReading& out)
+bool MouseDevice::QueryBattery(BatteryReading& out)
 {
     if (!m_hDevice)
         return false;

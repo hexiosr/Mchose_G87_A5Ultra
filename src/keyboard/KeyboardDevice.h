@@ -1,6 +1,6 @@
 #pragma once
 // ============================================================
-// MchoseKeyboardDevice.h
+// KeyboardDevice.h
 // 迈从（MCHOSE）G87 2.4G 键盘电量读取
 // 协议移植自 VigilWatt docs/hardware/protocols.md §1（VID_41E4 老款接收器）
 //
@@ -19,11 +19,11 @@
 #include <string>
 #include "BatteryCommon.h"
 
-class MchoseKeyboardDevice
+class KeyboardDevice
 {
 public:
-    MchoseKeyboardDevice();
-    ~MchoseKeyboardDevice();
+    KeyboardDevice();
+    ~KeyboardDevice();
 
     // 在系统中搜索迈从键盘电量通道 HID 设备；找到后打开并读取接口信息。
     bool Open(const std::wstring& device_path = L"");
@@ -48,10 +48,10 @@ public:
     bool ReadInput(BYTE* buf, DWORD timeout_ms);
 
     // 解析一条 0x4A 查询响应帧
-    static MchoseBatteryReading ParseQueryResponse(const BYTE* frame, int len);
+    static BatteryReading ParseQueryResponse(const BYTE* frame, int len);
 
     // 解析一条 0x0A 自发推送帧（返回是否解析到有效电量）
-    static bool ParsePushFrame(const BYTE* frame, int len, MchoseBatteryReading& out);
+    static bool ParsePushFrame(const BYTE* frame, int len, BatteryReading& out);
 
     // 帧校验和：前 19 字节求和 & 0xFF == 第 20 字节
     static bool CheckSum(const BYTE* frame, int len);

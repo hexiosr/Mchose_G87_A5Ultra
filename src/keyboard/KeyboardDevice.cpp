@@ -1,4 +1,4 @@
-#include "MchoseKeyboardDevice.h"
+#include "KeyboardDevice.h"
 #include "HidApi.h"
 #include <setupapi.h>
 #include <vector>
@@ -9,18 +9,18 @@ static constexpr BYTE REPORT_ID = 0x13;
 static constexpr BYTE CMD_SESSION_OPEN = 0x05;   // 参数 0x01 -> 13 05 01 00*16 19
 static constexpr BYTE CMD_BATTERY_QUERY = 0x4A;  // 参数 0x01 -> 13 4A 01 00*16 5E
 static constexpr int  REPORT_LEN = 20;           // 20 字节帧
-static constexpr WORD MCHOSE_VID = 0x41E4;       // 迈从 VID
+static constexpr WORD VENDOR_VID = 0x41E4;       // 迈从 VID
 
 // 电量通道集合特征：UsagePage 0xFF02，输入/输出 20 字节，Report ID 0x13
 static constexpr USHORT CHANNEL_USAGE_PAGE = 0xFF02;
 static constexpr USHORT CHANNEL_MIN_LEN = 20;
 
-MchoseKeyboardDevice::MchoseKeyboardDevice()
+KeyboardDevice::KeyboardDevice()
 {
     m_readEvent = CreateEventW(nullptr, TRUE, TRUE, nullptr); // 手动重置、初始有信号
 }
 
-MchoseKeyboardDevice::~MchoseKeyboardDevice()
+KeyboardDevice::~KeyboardDevice()
 {
     Close();
     if (m_readEvent)
@@ -30,7 +30,7 @@ MchoseKeyboardDevice::~MchoseKeyboardDevice()
     }
 }
 
-bool MchoseKeyboardDevice::Open(const std::wstring& device_path)
+bool KeyboardDevice::Open(const std::wstring& device_path)
 {
     Close();
 
@@ -75,7 +75,7 @@ bool MchoseKeyboardDevice::Open(const std::wstring& device_path)
     return found;
 }
 
-bool MchoseKeyboardDevice::OpenPath(const std::wstring& path)
+bool KeyboardDevice::OpenPath(const std::wstring& path)
 {
     HANDLE h = CreateFileW(path.c_str(),
                            GENERIC_READ | GENERIC_WRITE,
@@ -87,7 +87,7 @@ bool MchoseKeyboardDevice::OpenPath(const std::wstring& path)
     // 读取 VID/PID
     HIDD_ATTRIBUTES attr{};
     attr.Size = sizeof(attr);
-    if (!HidD_GetAttributes(h, &attr) || attr.VendorID != MCHOSE_VID)
+    if (!HidD_GetAttributes(h, &attr) || attr.VendorID != VENDOR_VID)
     {
         CloseHandle(h);
         return false;
@@ -126,7 +126,7 @@ bool MchoseKeyboardDevice::OpenPath(const std::wstring& path)
     return true;
 }
 
-void MchoseKeyboardDevice::Close()
+void KeyboardDevice::Close()
 {
     if (m_hDevice)
     {
@@ -139,7 +139,7 @@ void MchoseKeyboardDevice::Close()
     m_output_length = 0;
 }
 
-void MchoseKeyboardDevice::BuildOutputReport(BYTE* out20, BYTE cmd, BYTE param)
+void KeyboardDevice::BuildOutputReport(BYTE* out20, BYTE cmd, BYTE param)
 {
     std::memset(out20, 0, REPORT_LEN);
     out20[0] = REPORT_ID;
@@ -152,7 +152,7 @@ void MchoseKeyboardDevice::BuildOutputReport(BYTE* out20, BYTE cmd, BYTE param)
     out20[REPORT_LEN - 1] = sum;
 }
 
-bool MchoseKeyboardDevice::WriteReport(const BYTE* buf, int len, DWORD timeout_ms)
+bool KeyboardDevice::WriteReport(const BYTE* buf, int len, DWORD timeout_ms)
 {
     if (!m_hDevice || len <= 0)
         return false;
@@ -178,21 +178,21 @@ bool MchoseKeyboardDevice::WriteReport(const BYTE* buf, int len, DWORD timeout_m
     return written == static_cast<DWORD>(len);
 }
 
-bool MchoseKeyboardDevice::SendSessionOpen()
+bool KeyboardDevice::SendSessionOpen()
 {
     BYTE frame[REPORT_LEN];
     BuildOutputReport(frame, CMD_SESSION_OPEN, 0x01);
     return WriteReport(frame, m_output_length ? m_output_length : REPORT_LEN, 500);
 }
 
-bool MchoseKeyboardDevice::SendBatteryQuery()
+bool KeyboardDevice::SendBatteryQuery()
 {
     BYTE frame[REPORT_LEN];
     BuildOutputReport(frame, CMD_BATTERY_QUERY, 0x01);
     return WriteReport(frame, m_output_length ? m_output_length : REPORT_LEN, 500);
 }
 
-bool MchoseKeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
+bool KeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
 {
     if (!m_hDevice || !buf || m_input_length == 0)
     {
@@ -224,7 +224,7 @@ bool MchoseKeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
     return true;
 }
 
-bool MchoseKeyboardDevice::CheckSum(const BYTE* frame, int len)
+bool KeyboardDevice::CheckSum(const BYTE* frame, int len)
 {
     if (!frame || len < REPORT_LEN)
         return false;
@@ -234,9 +234,9 @@ bool MchoseKeyboardDevice::CheckSum(const BYTE* frame, int len)
     return sum == frame[REPORT_LEN - 1];
 }
 
-MchoseBatteryReading MchoseKeyboardDevice::ParseQueryResponse(const BYTE* frame, int len)
+BatteryReading KeyboardDevice::ParseQueryResponse(const BYTE* frame, int len)
 {
-    MchoseBatteryReading r;
+    BatteryReading r;
     // 帧：[0]=0x13 [1]=0x4A [2]=0x01 [3]=0x00 [4]=0x02 [5]=电量 [6]=充电标志
     if (!frame || len < REPORT_LEN || !CheckSum(frame, len))
         return r;
@@ -252,7 +252,7 @@ MchoseBatteryReading MchoseKeyboardDevice::ParseQueryResponse(const BYTE* frame,
     return r;
 }
 
-bool MchoseKeyboardDevice::ParsePushFrame(const BYTE* frame, int len, MchoseBatteryReading& out)
+bool KeyboardDevice::ParsePushFrame(const BYTE* frame, int len, BatteryReading& out)
 {
     // 推送：[0]=0x13 [1]=0x0A ... [5]=类型 [6]/[7]=数据
     if (!frame || len < REPORT_LEN || !CheckSum(frame, len))

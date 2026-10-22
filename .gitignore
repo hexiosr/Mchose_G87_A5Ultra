@@ -5,3 +5,6 @@ out/
 *.exp
 *.pdb
 build_out.txt
+
+# development probes & third-party reference clones
+tools/

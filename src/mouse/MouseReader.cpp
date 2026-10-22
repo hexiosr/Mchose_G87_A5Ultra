@@ -1,37 +1,37 @@
-#include "MchoseMouseReader.h"
+#include "MouseReader.h"
 #include <windows.h>
 
-MchoseMouseReader::MchoseMouseReader()
+MouseReader::MouseReader()
 {
     m_snapshot.percent = -1;
 }
 
-MchoseMouseReader::~MchoseMouseReader()
+MouseReader::~MouseReader()
 {
     Stop();
 }
 
-void MchoseMouseReader::Start()
+void MouseReader::Start()
 {
     if (m_thread.joinable())
         return;
     m_stop = false;
-    m_thread = std::thread(&MchoseMouseReader::WorkerLoop, this);
+    m_thread = std::thread(&MouseReader::WorkerLoop, this);
     m_thread.detach();
 }
 
-void MchoseMouseReader::Stop()
+void MouseReader::Stop()
 {
     m_stop = true;
 }
 
-BatterySnapshot MchoseMouseReader::GetSnapshot() const
+BatterySnapshot MouseReader::GetSnapshot() const
 {
     std::lock_guard<std::mutex> lock(m_mutex);
     return m_snapshot;
 }
 
-void MchoseMouseReader::UpdateSnapshotLocked(const MchoseBatteryReading& reading, bool online, ULONGLONG now_ms)
+void MouseReader::UpdateSnapshotLocked(const BatteryReading& reading, bool online, ULONGLONG now_ms)
 {
     m_snapshot.online = online;
     if (reading.valid)
@@ -66,7 +66,7 @@ static bool MouseActivity(POINT& last_pos)
 
 // 采集：打开句柄 → QueryBattery（SetFeature 11 06 + GetFeature 读响应）→ 关闭。
 // 查询后释放句柄（即查即关，不长期持有，避免与官方驱动/网页驱动争用集合）。
-static bool CollectBattery(MchoseMouseDevice& device, MchoseBatteryReading& out,
+static bool CollectBattery(MouseDevice& device, BatteryReading& out,
                            std::wstring& out_product, std::wstring& out_path)
 {
     if (!device.IsOpen())
@@ -84,9 +84,9 @@ static bool CollectBattery(MchoseMouseDevice& device, MchoseBatteryReading& out,
     return got;
 }
 
-void MchoseMouseReader::WorkerLoop()
+void MouseReader::WorkerLoop()
 {
-    MchoseMouseDevice device;
+    MouseDevice device;
     constexpr ULONGLONG kQueryCooldownMs = 2000;     // 采集冷却（防抖）
     constexpr ULONGLONG kActivityRefreshMs = 5000;   // 使用中每 5 秒刷新一次
     constexpr ULONGLONG kActiveWindowMs = 30000;     // 最近 30 秒内有活动才视为"使用中"
@@ -124,7 +124,7 @@ void MchoseMouseReader::WorkerLoop()
         else if (now - last_activity_ms < kActiveWindowMs &&
                  now - last_query_ms >= kActivityRefreshMs)
         {
-            need_collect = true;                 // ③ 使用中（最近 30 秒内有活动）每 10 秒刷新一次
+            need_collect = true;                 // ③ 使用中（最近 30 秒内有活动）每 5 秒刷新一次
         }
 
         if (need_collect && now - last_query_ms < kQueryCooldownMs)
@@ -132,7 +132,7 @@ void MchoseMouseReader::WorkerLoop()
 
         if (need_collect)
         {
-            MchoseBatteryReading r;
+            BatteryReading r;
             std::wstring product, devpath;
             bool got = CollectBattery(device, r, product, devpath);
             last_query_ms = GetTickCount64();

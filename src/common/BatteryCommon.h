@@ -6,7 +6,7 @@
 #include <string>
 
 // 单次电量读数（键盘 0x13 协议与鼠标 0x11 feature 协议共用）
-struct MchoseBatteryReading
+struct BatteryReading
 {
     bool   valid = false;    // 是否有有效读数
     int    percent = -1;     // 电量百分比 0~100

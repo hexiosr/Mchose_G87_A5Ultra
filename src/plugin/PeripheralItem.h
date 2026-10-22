@@ -1,14 +1,14 @@
 #pragma once
 // ============================================================
-// MchosePeripheralItem.h —— 外设电量显示项（IPluginItem 实现）
-// 一个显示项组合键盘 / 鼠标电量（自绘：⚡ 垂直居中）
+// PeripheralItem.h —— 外设电量显示项（IPluginItem 实现）
+// 一个显示项组合键盘 / 鼠标 / G7 Pro / PS5 电量（自绘：⚡ 垂直居中）
 // ============================================================
 #include "PluginInterface.h"
 
-class MchosePeripheralItem : public IPluginItem
+class PeripheralItem : public IPluginItem
 {
 public:
-    MchosePeripheralItem() = default;
+    PeripheralItem() = default;
 
     virtual const wchar_t* GetItemName() const override;
     virtual const wchar_t* GetItemId() const override;

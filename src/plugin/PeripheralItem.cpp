@@ -1,35 +1,35 @@
-#include "MchosePeripheralItem.h"
-#include "MchosePlugin.h"
+#include "PeripheralItem.h"
+#include "Plugin.h"
 #include <windows.h>
 #include <vector>
 
-const wchar_t* MchosePeripheralItem::GetItemName() const
+const wchar_t* PeripheralItem::GetItemName() const
 {
     return L"外设电量显示";
 }
 
-const wchar_t* MchosePeripheralItem::GetItemId() const
+const wchar_t* PeripheralItem::GetItemId() const
 {
     return L"peripheralBattery";
 }
 
-const wchar_t* MchosePeripheralItem::GetItemLableText() const
+const wchar_t* PeripheralItem::GetItemLableText() const
 {
-    return MchosePlugin::Instance().CombinedLabelText().c_str();
+    return Plugin::Instance().CombinedLabelText().c_str();
 }
 
-const wchar_t* MchosePeripheralItem::GetItemValueText() const
+const wchar_t* PeripheralItem::GetItemValueText() const
 {
-    return MchosePlugin::Instance().CombinedValueText().c_str();
+    return Plugin::Instance().CombinedValueText().c_str();
 }
 
-const wchar_t* MchosePeripheralItem::GetItemValueSampleText() const
+const wchar_t* PeripheralItem::GetItemValueSampleText() const
 {
-    // 给足宽度预算（按双设备最宽情况），避免末尾符号被裁剪
-    return MchosePlugin::Instance().CombinedSampleText().c_str();
+    // 给足宽度预算（按全部设备组合的最宽情况），避免末尾符号被裁剪
+    return Plugin::Instance().CombinedSampleText().c_str();
 }
 
-bool MchosePeripheralItem::IsCustomDraw() const
+bool PeripheralItem::IsCustomDraw() const
 {
     return true; // 自绘：⚡ 符号在系统字体中基线偏低，需单独上移实现视觉居中
 }
@@ -37,14 +37,14 @@ bool MchosePeripheralItem::IsCustomDraw() const
 // 完整显示文本（label + value；label 为空时只显示 value）
 static std::wstring FullText()
 {
-    const std::wstring& label = MchosePlugin::Instance().CombinedLabelText();
-    const std::wstring& value = MchosePlugin::Instance().CombinedValueText();
+    const std::wstring& label = Plugin::Instance().CombinedLabelText();
+    const std::wstring& value = Plugin::Instance().CombinedValueText();
     if (label.empty())
         return value;
     return label + L" " + value;
 }
 
-int MchosePeripheralItem::GetItemWidth() const
+int PeripheralItem::GetItemWidth() const
 {
     // 96 DPI 基准宽度（主程序会按系统 DPI 放大）
     HDC hdc = CreateCompatibleDC(nullptr);
@@ -60,7 +60,7 @@ int MchosePeripheralItem::GetItemWidth() const
     return sz.cx + 6;
 }
 
-int MchosePeripheralItem::GetItemWidthEx(void* hDC) const
+int PeripheralItem::GetItemWidthEx(void* hDC) const
 {
     // 实际 hDC 下的精确宽度（主程序不缩放）
     std::wstring txt = FullText();
@@ -69,7 +69,7 @@ int MchosePeripheralItem::GetItemWidthEx(void* hDC) const
     return sz.cx + 6;
 }
 
-void MchosePeripheralItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
+void PeripheralItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_mode)
 {
     HDC dc = (HDC)hDC;
     SetBkMode(dc, TRANSPARENT);
