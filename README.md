@@ -1,6 +1,6 @@
 # PeripheralBattery
 
-TrafficMonitor 外设电量显示插件，支持：
+[TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 外设电量显示插件，支持：
 
 - 迈从（MCHOSE）G87 2.4G 键盘
 - 迈从（MCHOSE）A5 Ultra 2.4G 鼠标
@@ -29,7 +29,7 @@ TrafficMonitor 外设电量显示插件，支持：
 ## 安装
 
 1. 从 Release 下载 `PeripheralBattery.dll`
-2. 复制到 TrafficMonitor 的 `plugins` 目录
+2. 复制到 [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 的 `plugins` 目录
 3. 重启 TrafficMonitor，在插件管理中勾选"外设电量显示"
 
 ## 编译
