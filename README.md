@@ -1,6 +1,6 @@
 # PeripheralBattery
 
-利用[TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 做的外设电量显示插件，支持：
+利用[TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 插件的支持，做的外设电量显示，支持：
 
 - 迈从（MCHOSE）G87 2.4G 键盘
 - 迈从（MCHOSE）A5 Ultra 2.4G 鼠标
