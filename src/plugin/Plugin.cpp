@@ -44,8 +44,10 @@ void Plugin::RefreshDisplay()
     BuildValueText(m_mouse_reader.GetSnapshot(), ms_txt);
     BuildG7ValueText(m_g7_reader.GetSnapshot(), g7_txt); // G7 用电池图标（4 档）
     BuildValueText(m_ds_reader.GetSnapshot(), ds_txt);
+    if (ds_txt == L"--%")
+        ds_txt = L"未连接"; // PS5 断开（PnP 检测）时显示"未连接"
 
-    // 键盘 / 鼠标 / 手柄 / PS5 始终组合显示（无读数时该设备显示 --%）
+    // 键盘 / 鼠标 / 手柄 / PS5 始终组合显示（键鼠无读数时保持最后读数）
     // 不显示"外设:"标签，任务栏只显示设备电量
     m_label_text = L"";
     m_value_text = L"键盘: " + kb_txt +
@@ -70,7 +72,7 @@ void Plugin::BuildG7ValueText(const BatterySnapshot& snap, std::wstring& out)
 {
     if (!snap.valid || snap.percent < 0)
     {
-        out = L"--";
+        out = L"未连接";
         return;
     }
 
@@ -188,7 +190,7 @@ void Plugin::BuildG7Tooltip(const BatterySnapshot& snap, std::wstring& out)
     }
     else if (!snap.valid)
     {
-        out += L"等待设备上报电量…";
+        out += L"手柄未连接";
     }
     else
     {
@@ -241,7 +243,7 @@ void Plugin::BuildDualSenseTooltip(const BatterySnapshot& snap, std::wstring& ou
     }
     else
     {
-        out += L"等待设备上报电量…";
+        out += L"手柄未连接";
     }
 }
 
@@ -258,7 +260,7 @@ const wchar_t* Plugin::GetInfo(PluginInfoIndex index)
     case TMI_COPYRIGHT:
         return L"MIT License";
     case TMI_VERSION:
-        return L"0.1.0";
+        return L"0.1.1";
     default:
         break;
     }
