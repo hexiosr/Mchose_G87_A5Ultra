@@ -2,7 +2,6 @@
 #include "HidApi.h"
 #include <setupapi.h>
 #include <vector>
-#include <cstring>
 
 // ---- DualSense 特征 ----
 static constexpr WORD   SONY_VID       = 0x054C;
@@ -141,8 +140,8 @@ void DualSenseDevice::Close()
         CloseHandle(m_hDevice);
         m_hDevice = nullptr;
     }
-    m_device_path.clear();
-    m_product_name.clear();
+    // 保留 m_device_path / m_product_name：路径作为下次 Open() 的缓存
+    // （设备未重插时直接按路径重开，免全量枚举），产品名供快照展示
 }
 
 bool DualSenseDevice::ParseInputReport(const BYTE* buf, int len, BatteryReading& out)
@@ -189,15 +188,16 @@ bool DualSenseDevice::ParseInputReport(const BYTE* buf, int len, BatteryReading&
     return true;
 }
 
-bool DualSenseDevice::QueryBattery(BatteryReading& out)
+bool DualSenseDevice::QueryBattery(BatteryReading& out, const std::atomic<bool>& cancel, DWORD timeout_ms)
 {
     if (!m_hDevice)
         return false;
 
     // 被动读取 Input Report 0x01：DS5Dongle 只在收到手柄蓝牙帧时才转发 USB 报告，
     // 手柄待机/休眠/断开后不再上报。同步 ReadFile 会永久阻塞，
-    // 导致 WorkerLoop 卡死、PnP 断开检测停摆。故用 OVERLAPPED + 3s 超时，
-    // 超时视为"暂无新数据"返回 false，线程继续跑 PnP 检测。
+    // 导致 WorkerLoop 卡死、PnP 断开检测停摆。故用 OVERLAPPED + 分片等待：
+    // 总耐心 timeout_ms 不变，cancel 置位（插件 Stop）时 100ms 内放弃，
+    // 超时/取消视为"暂无新数据"返回 false，线程继续跑 PnP 检测。
     BYTE buf[65] = { 0 };
     DWORD read = 0;
     OVERLAPPED ov{};
@@ -208,13 +208,37 @@ bool DualSenseDevice::QueryBattery(BatteryReading& out)
     BOOL ok = ReadFile(m_hDevice, buf, sizeof(buf), &read, &ov);
     if (!ok && GetLastError() == ERROR_IO_PENDING)
     {
-        if (WaitForSingleObject(ov.hEvent, 3000) == WAIT_OBJECT_0)
+        ULONGLONG deadline = GetTickCount64() + timeout_ms;
+        bool completed = false;
+        while (true)
+        {
+            ULONGLONG now = GetTickCount64();
+            if (now >= deadline)
+                break;
+            DWORD slice = 100;
+            if (deadline - now < slice)
+                slice = static_cast<DWORD>(deadline - now);
+            if (WaitForSingleObject(ov.hEvent, slice) == WAIT_OBJECT_0)
+            {
+                completed = true;
+                break;
+            }
+            if (cancel.load())
+                break;
+        }
+        if (completed)
+        {
             ok = GetOverlappedResult(m_hDevice, &ov, &read, FALSE);
+        }
         else
         {
+            // CancelIo 后必须等取消完成再返回，否则内核完成取消时
+            // 仍会写已销毁栈帧上的 OVERLAPPED
             CancelIo(m_hDevice);
+            DWORD canceled = 0;
+            GetOverlappedResult(m_hDevice, &ov, &canceled, TRUE);
             CloseHandle(ov.hEvent);
-            return false; // 超时：手柄待机/休眠/断开，无新上报
+            return false; // 超时/取消：手柄待机/休眠/断开，无新上报
         }
     }
     CloseHandle(ov.hEvent);

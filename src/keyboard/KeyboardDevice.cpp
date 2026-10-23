@@ -104,7 +104,8 @@ bool KeyboardDevice::OpenPath(const std::wstring& path)
     HidP_GetCaps(ppd, &caps);
     if (caps.UsagePage != CHANNEL_USAGE_PAGE ||
         caps.OutputReportByteLength < CHANNEL_MIN_LEN ||
-        caps.InputReportByteLength < CHANNEL_MIN_LEN)
+        caps.InputReportByteLength < CHANNEL_MIN_LEN ||
+        caps.InputReportByteLength > 256) // 输入报告长度须 ≤ Reader 侧帧缓冲（256B）
     {
         HidD_FreePreparsedData(ppd);
         CloseHandle(h);
@@ -133,8 +134,8 @@ void KeyboardDevice::Close()
         CloseHandle(m_hDevice);
         m_hDevice = nullptr;
     }
-    m_device_path.clear();
-    m_product_name.clear();
+    // 保留 m_device_path / m_product_name：路径作为下次 Open() 的缓存
+    // （接收器未重插时直接按路径重开，免全量枚举），产品名供快照展示
     m_input_length = 0;
     m_output_length = 0;
 }
@@ -170,6 +171,9 @@ bool KeyboardDevice::WriteReport(const BYTE* buf, int len, DWORD timeout_ms)
         if (wait != WAIT_OBJECT_0)
         {
             CancelIo(m_hDevice);
+            // 等取消完成再返回：否则内核完成取消时仍会写已销毁栈帧上的 OVERLAPPED
+            DWORD canceled = 0;
+            GetOverlappedResult(m_hDevice, &ov, &canceled, TRUE);
             return false;
         }
         if (!GetOverlappedResult(m_hDevice, &ov, &written, FALSE))
@@ -178,18 +182,24 @@ bool KeyboardDevice::WriteReport(const BYTE* buf, int len, DWORD timeout_ms)
     return written == static_cast<DWORD>(len);
 }
 
-bool KeyboardDevice::SendSessionOpen()
+bool KeyboardDevice::SendCommand(BYTE cmd, BYTE param)
 {
     BYTE frame[REPORT_LEN];
-    BuildOutputReport(frame, CMD_SESSION_OPEN, 0x01);
-    return WriteReport(frame, m_output_length ? m_output_length : REPORT_LEN, 500);
+    BuildOutputReport(frame, cmd, param);
+    // 写入长度取协议帧与 caps 报告长度的较小者：
+    // 报告长度超过 20 时不能越过帧缓冲读栈（防御未来报告加长的接收器）
+    int len = (m_output_length > 0 && m_output_length < REPORT_LEN) ? m_output_length : REPORT_LEN;
+    return WriteReport(frame, len, 500);
+}
+
+bool KeyboardDevice::SendSessionOpen()
+{
+    return SendCommand(CMD_SESSION_OPEN, 0x01);
 }
 
 bool KeyboardDevice::SendBatteryQuery()
 {
-    BYTE frame[REPORT_LEN];
-    BuildOutputReport(frame, CMD_BATTERY_QUERY, 0x01);
-    return WriteReport(frame, m_output_length ? m_output_length : REPORT_LEN, 500);
+    return SendCommand(CMD_BATTERY_QUERY, 0x01);
 }
 
 bool KeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
@@ -212,6 +222,10 @@ bool KeyboardDevice::ReadInput(BYTE* buf, DWORD timeout_ms)
         if (wait == WAIT_TIMEOUT)
         {
             CancelIo(m_hDevice);
+            // 等取消完成再返回：否则内核完成取消时仍会写已销毁栈帧上的 OVERLAPPED，
+            // 且迟到的取消完成信号会误触发共享的 m_readEvent，污染下一次读写
+            DWORD canceled = 0;
+            GetOverlappedResult(m_hDevice, &ov, &canceled, TRUE);
             return false;
         }
         if (wait != WAIT_OBJECT_0)

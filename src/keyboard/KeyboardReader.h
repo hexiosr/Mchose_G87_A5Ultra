@@ -14,11 +14,10 @@
 class KeyboardReader
 {
 public:
-    KeyboardReader();
     ~KeyboardReader();
 
     void Start();
-    void Stop();                       // 请求停止（非阻塞）
+    void Stop();                       // 请求停止并 join 等待线程退出（线程内长等待可被打断）
 
     BatterySnapshot GetSnapshot() const;
 

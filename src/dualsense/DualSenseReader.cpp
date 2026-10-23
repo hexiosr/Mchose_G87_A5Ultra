@@ -1,11 +1,6 @@
 #include "DualSenseReader.h"
 #include <windows.h>
 
-DualSenseReader::DualSenseReader()
-{
-    m_snapshot.percent = -1;
-}
-
 DualSenseReader::~DualSenseReader()
 {
     Stop();
@@ -17,12 +12,15 @@ void DualSenseReader::Start()
         return;
     m_stop = false;
     m_thread = std::thread(&DualSenseReader::WorkerLoop, this);
-    m_thread.detach();
+    // 不 detach：Stop() join 确认线程退出后才允许再次 Start，
+    // 避免旧线程因 m_stop 被复位而永不退出、与新线程并发跑两个查询循环
 }
 
 void DualSenseReader::Stop()
 {
     m_stop = true;
+    if (m_thread.joinable())
+        m_thread.join(); // 线程内的长等待均可被 m_stop 打断，join 通常几百毫秒内返回
 }
 
 BatterySnapshot DualSenseReader::GetSnapshot() const
@@ -83,13 +81,20 @@ void DualSenseReader::WorkerLoop()
 
             if (last_read_ms == 0 || now - last_read_ms >= kReadMs)
             {
-                if (!device.IsOpen() && !device.Open(device.DevicePath()))
+                if (!device.IsOpen())
                 {
-                    // 打开失败（设备重枚举瞬间/驱动未就绪）→ 视为尚未真正可用，下次 2s 再试
-                    prev_present = false;
-                    if (!m_stop)
-                        Sleep(200);
-                    continue;
+                    // 缓存路径直开；失败或尚无缓存 → 全量搜索（接收器重插路径变化时兜底）
+                    bool opened = !device.DevicePath().empty() && device.Open(device.DevicePath());
+                    if (!opened)
+                        opened = device.Open(L"");
+                    if (!opened)
+                    {
+                        // 打开失败（设备重枚举瞬间/驱动未就绪）→ 视为尚未真正可用，下次 2s 再试
+                        prev_present = false;
+                        if (!m_stop)
+                            Sleep(200);
+                        continue;
+                    }
                 }
 
                 {
@@ -98,12 +103,11 @@ void DualSenseReader::WorkerLoop()
                     {
                         m_snapshot.has_device = true;
                         m_snapshot.product = device.ProductName();
-                        m_snapshot.device_path = device.DevicePath();
                     }
                 }
 
                 BatteryReading r;
-                bool got = device.QueryBattery(r);
+                bool got = device.QueryBattery(r, m_stop);
                 if (got)
                 {
                     last_read_ms = now; // 仅读取成功才进入 60s 节流；失败保持快速重试

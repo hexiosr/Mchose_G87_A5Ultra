@@ -1,11 +1,6 @@
 #include "KeyboardReader.h"
 #include <windows.h>
 
-KeyboardReader::KeyboardReader()
-{
-    m_snapshot.percent = -1;
-}
-
 KeyboardReader::~KeyboardReader()
 {
     Stop();
@@ -17,12 +12,15 @@ void KeyboardReader::Start()
         return;
     m_stop = false;
     m_thread = std::thread(&KeyboardReader::WorkerLoop, this);
-    m_thread.detach(); // 插件生命周期内常驻；进程退出时随进程终止
+    // 不 detach：Stop() join 确认线程退出后才允许再次 Start，
+    // 避免旧线程因 m_stop 被复位而永不退出、与新线程并发跑两个查询循环
 }
 
 void KeyboardReader::Stop()
 {
     m_stop = true;
+    if (m_thread.joinable())
+        m_thread.join(); // 线程内的长等待均可被 m_stop 打断，join 通常几百毫秒内返回
 }
 
 BatterySnapshot KeyboardReader::GetSnapshot() const
@@ -116,16 +114,14 @@ void KeyboardReader::WorkerLoop()
                 if (!ok)
                 {
                     // 打开失败（接收器未连接）：不做离线判定，保持最后读数，
-                    // 延迟后重试
-                    if (!m_stop)
-                        Sleep(kReconnectDelay);
+                    // 延迟后重试（可被 Stop 打断）
+                    SleepInterruptible(m_stop, kReconnectDelay);
                     continue;
                 }
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
                     m_snapshot.has_device = true;
                     m_snapshot.product = device.ProductName();
-                    m_snapshot.device_path = device.DevicePath();
                 }
             }
 
@@ -138,7 +134,7 @@ void KeyboardReader::WorkerLoop()
             ULONGLONG deadline = GetTickCount64() + 600;
             while (!m_stop && GetTickCount64() < deadline)
             {
-                BYTE frame[64]{};
+                BYTE frame[256]{}; // 与 KeyboardDevice::OpenPath 的输入报告长度上限（256B）匹配
                 if (!device.ReadInput(frame, 100))
                     continue;
                 BatteryReading r = KeyboardDevice::ParseQueryResponse(frame, sizeof(frame));

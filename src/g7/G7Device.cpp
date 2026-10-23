@@ -48,6 +48,9 @@ bool G7Device::ReadMessage(BYTE* buf, int& len, DWORD timeout_ms)
             else
             {
                 CancelIo(m_handle);
+                // 等取消完成再返回：否则内核完成取消时仍会写已销毁栈帧上的 OVERLAPPED
+                DWORD canceled = 0;
+                GetOverlappedResult(m_handle, &ov, &canceled, TRUE);
                 CloseHandle(ov.hEvent);
                 return false; // 超时：无消息
             }

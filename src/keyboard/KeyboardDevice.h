@@ -60,6 +60,7 @@ public:
 private:
     bool OpenPath(const std::wstring& path);
     bool WriteReport(const BYTE* buf, int len, DWORD timeout_ms);
+    bool SendCommand(BYTE cmd, BYTE param); // 构 0x13 协议帧并按报告长度写出
 
 private:
     HANDLE     m_hDevice = nullptr;

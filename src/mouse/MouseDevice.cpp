@@ -2,7 +2,6 @@
 #include "HidApi.h"
 #include <setupapi.h>
 #include <vector>
-#include <cstring>
 
 // ---- A5 Ultra 2.4G 电量通道特征 ----
 static constexpr WORD   VENDOR_VID      = 0x3837; // 14391
@@ -106,8 +105,8 @@ void MouseDevice::Close()
         CloseHandle(m_hDevice);
         m_hDevice = nullptr;
     }
-    m_device_path.clear();
-    m_product_name.clear();
+    // 保留 m_device_path / m_product_name：路径作为下次 Open() 的缓存
+    // （接收器未重插时直接按路径重开，免全量枚举），产品名供快照展示
 }
 
 // SetFeature 在设备休眠时可能挂起，实测本设备正常立即返回（debug-probe5 OK err=0）
@@ -140,7 +139,7 @@ bool MouseDevice::ParseFeatureResponse(const BYTE* resp, int len, BatteryReading
     return true;
 }
 
-bool MouseDevice::QueryBattery(BatteryReading& out)
+bool MouseDevice::QueryBattery(BatteryReading& out, const std::atomic<bool>& cancel)
 {
     if (!m_hDevice)
         return false;
@@ -152,12 +151,15 @@ bool MouseDevice::QueryBattery(BatteryReading& out)
     for (int i = 0; i < 19; ++i)
         cmd[2 + i] = 0xFF;
 
-    // ② GetFeature 读响应；原码/反码交替，最多重试 3 次
+    // ② GetFeature 读响应；原码/反码交替，最多重试 3 次。
+    //    等待总时长与原实现一致，但按 50ms 分片可被 cancel 打断
     for (int attempt = 0; attempt < 3; ++attempt)
     {
         if (!SetFeatureSafe(cmd, 21))
             return false;
-        Sleep(200);
+        SleepInterruptible(cancel, 200);
+        if (cancel.load())
+            return false;
 
         BYTE resp[66] = {0};
         resp[0] = FEATURE_RID;
@@ -167,7 +169,11 @@ bool MouseDevice::QueryBattery(BatteryReading& out)
                 return true;
         }
         if (attempt < 2)
-            Sleep(100);
+        {
+            SleepInterruptible(cancel, 100);
+            if (cancel.load())
+                return false;
+        }
     }
     return false;
 }

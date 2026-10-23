@@ -107,5 +107,5 @@ if errorlevel 1 (
 echo.
 echo [OK] Build finished:
 echo      %ROOT%out\PeripheralBattery.dll
-echo      (copy to TrafficMonitor's plugins folder, then enable the "??????????????????" item)
+echo      (copy to TrafficMonitor's plugins folder, then enable the "peripheralBattery" item)
 endlocal

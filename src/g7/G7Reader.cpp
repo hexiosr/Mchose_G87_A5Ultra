@@ -2,11 +2,6 @@
 #include <windows.h>
 #include <cstring>
 
-G7Reader::G7Reader()
-{
-    m_snapshot.percent = -1;
-}
-
 G7Reader::~G7Reader()
 {
     Stop();
@@ -18,12 +13,15 @@ void G7Reader::Start()
         return;
     m_stop = false;
     m_thread = std::thread(&G7Reader::WorkerLoop, this);
-    m_thread.detach(); // 插件生命周期内常驻；进程退出时随进程终止
+    // 不 detach：Stop() join 确认线程退出后才允许再次 Start，
+    // 避免旧线程因 m_stop 被复位而永不退出、与新线程并发跑两个查询循环
 }
 
 void G7Reader::Stop()
 {
     m_stop = true;
+    if (m_thread.joinable())
+        m_thread.join(); // 线程内的长等待均可被 m_stop 打断，join 通常几百毫秒内返回
 }
 
 BatterySnapshot G7Reader::GetSnapshot() const
@@ -67,7 +65,7 @@ void G7Reader::WorkerLoop()
     ULONGLONG last_msg_ms = 0;       // 最近一次收到该设备消息的时间
 
     constexpr DWORD kReconnectDelay = 3000;     // 打不开 GIP 总线的重试间隔
-    constexpr DWORD kReadTimeoutMs = 5000;      // 单次读超时（无消息则继续等）
+    constexpr DWORD kReadTimeoutMs = 1000;      // 单次读超时：消息到达会立即唤醒等待，超时只决定空闲巡检节奏；1s 也让 Stop() 的 join 不被长阻塞拖住
     constexpr ULONGLONG kIdleResetMs = 60000;   // 60s 无消息 → 认为接收器被换插，重置设备 ID 重新学习
     constexpr ULONGLONG kNoMsgOfflineMs = 90000;// 90s 无消息 → 视为手柄断开（正常连接约 20s 一条 Status）
 
@@ -79,8 +77,7 @@ void G7Reader::WorkerLoop()
             if (!ok)
             {
                 // GIP 总线打不开（驱动未就绪/系统无 GIP 设备）→ 保持最后读数，延迟重试
-                if (!m_stop)
-                    Sleep(kReconnectDelay);
+                SleepInterruptible(m_stop, kReconnectDelay);
                 continue;
             }
             {

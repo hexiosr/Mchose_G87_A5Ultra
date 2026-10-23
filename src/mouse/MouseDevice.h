@@ -15,6 +15,7 @@
 // ============================================================
 #include <windows.h>
 #include <string>
+#include <atomic>
 #include "BatteryCommon.h"
 
 class MouseDevice
@@ -34,7 +35,8 @@ public:
     const std::wstring& ProductName() const { return m_product_name; }
 
     // 读取设备信息（含电量）：SetFeature(11 06) + GetFeature(0x11)。
-    bool QueryBattery(BatteryReading& out);
+    // 重试间的等待可被 cancel 打断（Reader Stop 时尽快返回，不拖住 join）。
+    bool QueryBattery(BatteryReading& out, const std::atomic<bool>& cancel);
 
 private:
     bool OpenPath(const std::wstring& path);

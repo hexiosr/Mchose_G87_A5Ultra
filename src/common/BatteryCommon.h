@@ -3,6 +3,7 @@
 // BatteryCommon.h —— 键盘 / 鼠标两个设备共用的数据结构
 // ============================================================
 #include <windows.h>
+#include <atomic>
 #include <string>
 
 // 单次电量读数（键盘 0x13 协议与鼠标 0x11 feature 协议共用）
@@ -23,5 +24,12 @@ struct BatterySnapshot
     bool   charging = false;     // 充电中
     ULONGLONG last_update_ms = 0;// 最近一次成功读数时间（GetTickCount64）
     std::wstring product;        // 产品名
-    std::wstring device_path;    // 设备路径（重连用）
 };
+
+// 可中断等待：stop 置位后提前返回。后台线程里的长延迟（重连重试等）
+// 用它代替 Sleep，保证 Reader::Stop() 的 join 不被拖满整个延迟。
+inline void SleepInterruptible(const std::atomic<bool>& stop, DWORD total_ms)
+{
+    for (DWORD waited = 0; waited < total_ms && !stop.load(); waited += 50)
+        Sleep(50);
+}

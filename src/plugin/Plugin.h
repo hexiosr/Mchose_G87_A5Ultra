@@ -5,12 +5,12 @@
 // 插件选项对话框中可勾选显示哪些设备，勾选结果持久化到 ini。
 // ============================================================
 #include "PluginInterface.h"
+#include "BatteryDraw.h"
 #include "PeripheralItem.h"
 #include "KeyboardReader.h"
 #include "MouseReader.h"
 #include "DualSenseReader.h"
 #include "G7Reader.h"
-#include <mutex>
 #include <string>
 
 // 设备条目数量（与 Plugin.cpp 中 kDevices 表一一对应，新增设备时同步 +1）
@@ -33,6 +33,10 @@ public:
     const std::wstring& CombinedValueText() const { return m_value_text; }
     const std::wstring& CombinedSampleText() const { return m_sample_text; }
 
+    // 供显示项自绘（UI 线程缓存，由 RefreshDisplay 更新；构造时预填全部设备）
+    const DeviceDisplay* Display() const { return m_display; }
+    int DisplayCount() const { return m_display_count; }
+
     void SetOptionChanged(bool v) { m_option_changed = v; }
     void ApplyOptionsNow() { RefreshDisplay(); } // 选项确定后立即刷新显示
     void LoadConfig();
@@ -50,7 +54,7 @@ public:
     void SaveConfig();
 
 private:
-    Plugin() = default;
+    Plugin(); // 预填自绘显示数组（kDevices 定义在 Plugin.cpp）
     Plugin(const Plugin&) = delete;
 
     void RefreshDisplay();
@@ -77,6 +81,9 @@ private:
     bool m_dlg_show[kDeviceCount];                          // 选项对话框工作副本
     int m_dlg_order[kDeviceCount];
     bool m_option_changed = false;
+
+    DeviceDisplay m_display[kDeviceCount]; // 自绘数据（仅勾选设备，按显示顺序）
+    int m_display_count = 0;
 
     // UI 线程缓存（由 DataRequired 更新，PeripheralItem::GetItemValueText 读取）
     std::wstring m_value_text = L"键盘: --% | 鼠标: --% | 手柄: 未连接 | PS5: 未连接";

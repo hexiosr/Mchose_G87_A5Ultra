@@ -8,11 +8,12 @@
 //
 // 协议（controllers.fandom.com/wiki/Sony_DualSense USBGetStateData）：
 //   读取 Input Report 0x01（64 字节，含 Report ID）：
-//     resp[52].0..3  = PowerPercent（0x00-0x0A，即 0~10 档，×10 = 百分比）
+//     resp[52].0..3  = PowerPercent（0x00-0x0A，即 0~10 档，percent = min(档位*10+5, 100)）
 //     resp[52].4..7  = PowerState（0x01=Charging，0x02=Complete，0x00=Discharging）
 // ============================================================
 #include <windows.h>
 #include <string>
+#include <atomic>
 #include "BatteryCommon.h"
 
 class DualSenseDevice
@@ -35,8 +36,9 @@ public:
     const std::wstring& DevicePath() const { return m_device_path; }
     const std::wstring& ProductName() const { return m_product_name; }
 
-    // 读取 Input Report 0x01 解析电量 / 充电状态（纯被动 ReadFile，短超时）
-    bool QueryBattery(BatteryReading& out);
+    // 读取 Input Report 0x01 解析电量 / 充电状态（纯被动 ReadFile，分片等待）。
+    // cancel 置位（Reader Stop）时 100ms 内放弃等待，保证 Stop() 的 join 及时返回。
+    bool QueryBattery(BatteryReading& out, const std::atomic<bool>& cancel, DWORD timeout_ms = 3000);
 
 private:
     bool OpenPath(const std::wstring& path);
