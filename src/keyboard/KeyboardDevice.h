@@ -35,8 +35,6 @@ public:
     const std::wstring& DevicePath() const { return m_device_path; }
     const std::wstring& ProductName() const { return m_product_name; }
 
-    USHORT OutputReportLength() const { return m_output_length; }
-    USHORT InputReportLength() const { return m_input_length; }
 
     // 开会话（dongle 记住会话状态；句柄重开后重发一次无妨）
     bool SendSessionOpen();

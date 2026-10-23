@@ -15,7 +15,7 @@ const wchar_t* PeripheralItem::GetItemId() const
 
 const wchar_t* PeripheralItem::GetItemLableText() const
 {
-    return Plugin::Instance().CombinedLabelText().c_str();
+    return L"";
 }
 
 const wchar_t* PeripheralItem::GetItemValueText() const
@@ -25,7 +25,6 @@ const wchar_t* PeripheralItem::GetItemValueText() const
 
 const wchar_t* PeripheralItem::GetItemValueSampleText() const
 {
-    // 给足宽度预算（按全部设备组合的最宽情况），避免末尾符号被裁剪
     return Plugin::Instance().CombinedSampleText().c_str();
 }
 
@@ -34,14 +33,10 @@ bool PeripheralItem::IsCustomDraw() const
     return true; // 自绘：⚡ 符号在系统字体中基线偏低，需单独上移实现视觉居中
 }
 
-// 完整显示文本（label + value；label 为空时只显示 value）
+// 完整显示文本（label 为空时只显示 value）
 static std::wstring FullText()
 {
-    const std::wstring& label = Plugin::Instance().CombinedLabelText();
-    const std::wstring& value = Plugin::Instance().CombinedValueText();
-    if (label.empty())
-        return value;
-    return label + L" " + value;
+    return Plugin::Instance().CombinedValueText();
 }
 
 int PeripheralItem::GetItemWidth() const
@@ -101,7 +96,7 @@ void PeripheralItem::DrawItem(void* hDC, int x, int y, int w, int h, bool dark_m
 
     // 垂直居中：文本按行高居中，基线上移使视觉重心对齐
     int top = y + (h - tm.tmHeight) / 2;
-    int lightning_dy = tm.tmHeight / 6; // ⚡ 相对普通文本上移量（微调此值可调整位置）
+    int lightning_dy = tm.tmHeight / 12; // ⚡ 相对普通文本上移量（微调此值可调整位置）
 
     SetTextAlign(dc, TA_LEFT | TA_TOP);
     int cx = x;

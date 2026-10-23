@@ -67,7 +67,6 @@ void KeyboardReader::WorkerLoop()
 
     ULONGLONG last_query_ms = 0;
     ULONGLONG last_key_activity_ms = 0; // 最近一次检测到按键的时刻
-    bool ever_opened = false;
 
     while (!m_stop)
     {
@@ -122,7 +121,6 @@ void KeyboardReader::WorkerLoop()
                         Sleep(kReconnectDelay);
                     continue;
                 }
-                ever_opened = true;
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
                     m_snapshot.has_device = true;
