@@ -91,7 +91,6 @@ void DualSenseReader::WorkerLoop()
                         Sleep(200);
                     continue;
                 }
-                last_read_ms = now;
 
                 {
                     std::lock_guard<std::mutex> lock(m_mutex);
@@ -104,12 +103,14 @@ void DualSenseReader::WorkerLoop()
                 }
 
                 BatteryReading r;
-                if (device.QueryBattery(r))
+                bool got = device.QueryBattery(r);
+                if (got)
                 {
+                    last_read_ms = now; // 仅读取成功才进入 60s 节流；失败保持快速重试
                     std::lock_guard<std::mutex> lock(m_mutex);
                     UpdateSnapshotLocked(r, true, GetTickCount64());
                 }
-                // 查询失败（空闲无新帧）→ 保持最后读数，连接状态已由 IsPresent 保证
+                // 查询失败/超时（待机无上报）→ 保持最后读数，连接状态已由 IsPresent 保证
                 device.Close(); // 即查即关
                 prev_present = true;
             }

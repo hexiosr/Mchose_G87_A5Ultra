@@ -14,8 +14,8 @@ struct DeviceEntry {
 const DeviceEntry kDevices[kDeviceCount] = {
     { 0, L"键盘", L"键盘电量（迈从 G87）" },
     { 1, L"鼠标", L"鼠标电量（迈从 A5 Ultra）" },
-    { 2, L"手柄", L"G7 Pro 手柄电量（盖世小鸡）" },
-    { 3, L"PS5",  L"PS5 手柄电量（DualSense）" },
+    { 2, L"G7 Pro", L"G7 Pro 手柄电量（盖世小鸡）" },
+    { 3, L"DS5",  L"PS5 手柄电量（DualSense）" },
 };
 
 Plugin Plugin::m_instance;

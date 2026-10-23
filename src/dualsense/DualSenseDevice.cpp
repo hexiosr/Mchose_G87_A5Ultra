@@ -194,14 +194,31 @@ bool DualSenseDevice::QueryBattery(BatteryReading& out)
     if (!m_hDevice)
         return false;
 
-    // 纯被动同步读取 Input Report 0x01：DS5Dongle 在手柄连接期间持续上报，
-    // ReadFile 立即返回（最初 60s 被动版同款方式，实测可用）。
-    // 连接状态由调用方通过 IsPresent()（PnP 检测）保证，断开时不会调用到这里。
+    // 被动读取 Input Report 0x01：DS5Dongle 只在收到手柄蓝牙帧时才转发 USB 报告，
+    // 手柄待机/休眠/断开后不再上报。同步 ReadFile 会永久阻塞，
+    // 导致 WorkerLoop 卡死、PnP 断开检测停摆。故用 OVERLAPPED + 3s 超时，
+    // 超时视为"暂无新数据"返回 false，线程继续跑 PnP 检测。
     BYTE buf[65] = { 0 };
     DWORD read = 0;
-    if (!ReadFile(m_hDevice, buf, sizeof(buf), &read, nullptr))
+    OVERLAPPED ov{};
+    ov.hEvent = CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    if (!ov.hEvent)
         return false;
-    if (read < POWER_BYTE + 1)
+
+    BOOL ok = ReadFile(m_hDevice, buf, sizeof(buf), &read, &ov);
+    if (!ok && GetLastError() == ERROR_IO_PENDING)
+    {
+        if (WaitForSingleObject(ov.hEvent, 3000) == WAIT_OBJECT_0)
+            ok = GetOverlappedResult(m_hDevice, &ov, &read, FALSE);
+        else
+        {
+            CancelIo(m_hDevice);
+            CloseHandle(ov.hEvent);
+            return false; // 超时：手柄待机/休眠/断开，无新上报
+        }
+    }
+    CloseHandle(ov.hEvent);
+    if (!ok || read < POWER_BYTE + 1)
         return false;
     return ParseInputReport(buf, (int)read, out);
 }
