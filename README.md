@@ -7,7 +7,7 @@
 - 盖世小鸡（GameSir）G7 Pro 2.4G 手柄
 - PS5 DualSense 手柄（通过 DS5Dongle 桥接为 USB HID）
 
-任务栏显示 `键盘: 99% | 鼠标: 99% | 手柄: ▮▮▮▮▕ | PS5: 55%`，充电时带 ⚡ 标识，悬停可看详情。
+任务栏显示 `键盘: 99% | 鼠标: 99% | 手柄: ▮▮▮▮ | PS5: 55%`，充电时带 ⚡ 标识，悬停可看详情。
 
 ## 各设备读取方式
 
@@ -29,7 +29,7 @@
 ## 安装
 
 1. 从 Release 下载 `PeripheralBattery.dll`
-2. 复制到 [TrafficMonitor](https://github.com/zhongyang219/TrafficMonitor) 的 `plugins` 目录
+2. 复制到 TrafficMonitor 的 `plugins` 目录
 3. 重启 TrafficMonitor，在插件管理中勾选"外设电量显示"
 
 ## 编译
