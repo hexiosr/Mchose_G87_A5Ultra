@@ -108,10 +108,12 @@ bool DualSenseDevice::IsPresent()
 
 bool DualSenseDevice::OpenPath(const std::wstring& path)
 {
+    // FILE_FLAG_OVERLAPPED 必须开：QueryBattery 依赖 OVERLAPPED 读做超时/取消，
+    // 同步句柄上 ReadFile 会阻塞到有数据，超时与 Stop 取消逻辑全部失效
     HANDLE h = CreateFileW(path.c_str(),
                            GENERIC_READ | GENERIC_WRITE,
                            FILE_SHARE_READ | FILE_SHARE_WRITE,
-                           nullptr, OPEN_EXISTING, 0, nullptr);
+                           nullptr, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, nullptr);
     if (h == INVALID_HANDLE_VALUE)
         return false;
 
@@ -167,6 +169,10 @@ bool DualSenseDevice::ParseInputReport(const BYTE* buf, int len, BatteryReading&
 
     if (level > 10)
         return false; // 无效读数
+    // 异常状态 (0xA 电压异常 / 0xB 温度异常 / 0xF 充电错误) 下 PowerPercent 无效
+    // (DS5Dongle 固件注释与 Linux hid-playstation.c 一致):保持上次读数
+    if (state == 0xA || state == 0xB || state == 0xF)
+        return false;
 
     out.valid = true;
     // 与 Linux 驱动 dualsense_parse_report 一致：
